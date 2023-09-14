@@ -4,3 +4,33 @@ from django.shortcuts import render
 
 # HINT: Create a view to provide movie recommendations list for the HTML template
 
+def generate_movie_context():
+    context ={}
+    #show only movies in recommendation list
+    #sorted by vote_average in desc
+    #Get recommended movie counts
+    recommended_count = Movie.objects.filter(
+        recommended = True
+    ).count()
+    # If there is no recommended movies
+    if recommended_count == 0:
+        #Just return the top coted and unwatched movies as popular ones
+        movies = Movie.objects.filter(
+            watched=False
+        ).order_by('-vote_count')[:30]
+    else:
+        #Get the top voted. unwatched, and recommended movies
+        movies = Movie.objects.filter(
+            watched=False
+        ).filter(
+            recommended=True
+        ).order_by('-vote_count')[:30]
+    context['movie_list'] = movies
+    return context
+
+def movie_recommendation_view(request):
+    if request.method == 'GET':
+        # The context/data to be presented in the HTML template
+        context = generate_movie_context()
+        # Render a HTML page with specific template and context 
+        return render(request, 'movierecommender/movie_list.html', context)

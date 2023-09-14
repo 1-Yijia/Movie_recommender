@@ -10,9 +10,19 @@ def check_valid_genres(genres: str) -> bool:
         return False
 
 # Add a Jaccard similarity method here
+def jaccard_similarity(list1: list, list2: list) -> float:
+    s1 = set(list1)
+    s2 = set(list2)
+    return float(len(s1.intersection(s2))/ len(s1.union(s2)))
 
 # Add a movie similarity method here
-
+def similarity_between_movies(movie1: Movie, movie2: Movie) -> float:
+    if check_valid_genres(movie1.genres) and check_valid_genres(movie2.genres):
+        m1_genre = movie1.genres.split()
+        m2_genre = movie2.genres.split()
+        return jaccard_similarity(m1_genre, m2_genre)
+    else:
+        return 0
 
 class Command(BaseCommand):
     help = 'Recommend movies'
@@ -23,7 +33,34 @@ class Command(BaseCommand):
     def handle(self, *args, **kwargs):
         # Figure the recommended field for each unwatched movie
         # Based on the similarity on movie genres
-        pass
+        THRESHOLD = 1.0
+        #Get all watched and unwatched movies
+        watched_movies = Movie.objects.filter(
+            watched=True
+        )
+        unwatched_movies = Movie.objects.filter(
+            watched=False
+        )
+        #start to generate recommendations in unwatched movies
+        for unwatched_movie in unwatched_movies:
+            max_similarity = 0
+            will_recommend = False
+            # For each watched movie 
+            for watched_movie in watched_movies:
+                #calculate the similarity between watched_movie and all unwatched_movies
+                similarity = similarity_between_movies(unwatched_movie, watched_movie)
+                if similarity >= max_similarity:
+                    max_similarity = similarity
+                # early stop is unwatched movie is similar enough
+                if max_similarity >= THRESHOLD:
+                    break
+            #If unwatched movie is similar enough to watched movie
+            # Then recommend it 
+            if max_similarity > THRESHOLD:
+                will_recommend = True
+                print(f'Find a movie recommendation: {unwatched_movie.original_title}')
+            unwatched_movie.recommended = will_recommend
+            unwatched_movie.save()
 
 
 # python manage.py make_recommendations
